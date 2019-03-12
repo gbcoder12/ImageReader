@@ -1,10 +1,7 @@
 package com.gbcode.testing;
-
-import com.gbcode.tools.ImageDecrypter;
-import com.gbcode.tools.ImageEncrypter;
+import com.gbcode.tools.ImageCrypter;
 
 import java.io.IOException;
-import java.util.Scanner;
 
 public class MainTest {
     private static String msg = "Savings her pleased are several started females met. Short her not among being any. Thing of judge fruit charm views do. Miles mr an forty along as he. She education get middleton day agreement performed preserved unwilling. Do however as pleased offence outward beloved by present. By outward neither he so covered amiable greater. Juvenile proposal betrayed he an informed weddings followed. Precaution day see imprudence sympathize principles. At full leaf give quit to in they up. \n" +
@@ -29,9 +26,8 @@ public class MainTest {
             "\n";
 
     public static void main(String[] args) throws IOException {
-//        ImageEncrypter ie = new ImageEncrypter(msg, "res/rand-text.png", false);
-//        ie.encryptImage();
-        ImageDecrypter id = new ImageDecrypter("res/rand-text.png");
-        System.out.println(id.getMessage());
+        ImageCrypter.encrypt(msg, "res/cabin-in-woods.jpg", "res/x.jpg");
+        String message = ImageCrypter.decrypt("res/x.jpg");
+        System.out.println(message);
     }
 }
