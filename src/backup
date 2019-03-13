@@ -1,0 +1,28 @@
+Color[] newPixels = new Color[imgSize]; // stores the last few bits (r 3, g 3, b 2) of the pixel
+            int index = 0;
+            int spacing = imgSize / message.length();
+            byte[] bytes = message.getBytes();
+            for (byte b : bytes) {
+                byte rSub = (byte) (b >> 5), // bits 7:5 of 'b' being picked out (00000xxx)
+                        gSub = (byte) ((b & 28) >> 2), // bits 4:2 of 'b' being picked out (000xxx00)
+                        bSub = (byte) (b & 3); // bits 1:0 of 'b' being picked out (000000xx)
+                newPixels[index] = new Color(rSub, gSub, bSub);
+                index += spacing;
+            }
+            newPixels[index] = new Color(0, 0, 3);
+
+            index = 0;
+            for (int h = 0; h < img.getHeight(); h++) {
+                for (int w = 0; w < img.getWidth(); w++) {
+                    if(newPixels[index] != null) {
+                        Color current = new Color(img.getRGB(w, h));
+                        newPixels[index] = new Color( // establishes the new color
+                                (current.getRed() & 248) | newPixels[index].getRed(),
+                                (current.getGreen() & 248) | newPixels[index].getGreen(),
+                                (current.getBlue() & 252) | newPixels[index].getBlue()
+                        );
+                        img.setRGB(w, h, newPixels[index].getRGB());
+                    }
+                    index++;
+                }
+            }

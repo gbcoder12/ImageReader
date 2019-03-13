@@ -26,8 +26,7 @@ public class MainTest {
             "\n";
 
     public static void main(String[] args) throws IOException {
-        ImageCrypter.encrypt(msg, "res/cabin-in-woods.jpg", "res/x.jpg");
-        String message = ImageCrypter.decrypt("res/x.jpg");
-        System.out.println(message);
+        ImageCrypter.encrypt(msg, "res/cabin-in-woods.png", "res/result.png");
+        System.out.println(ImageCrypter.decrypt("res/result.png"));
     }
 }
