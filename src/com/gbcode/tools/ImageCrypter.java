@@ -5,50 +5,47 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class ImageCrypter {
 
-    /**
-     * Puts a message into one image.
-     * @param message Message to encrypt.
-     * @param imgName Name of the image file to encrypt into and write to.
-     * @throws IOException When an error occurs in file management.
-     * @throws IllegalArgumentException When the message passed in can't fit in the image.
-     */
-    public static void encrypt(String message, String imgName)
-        throws IOException, IllegalArgumentException {
-        encrypt(message, imgName, imgName);
+    private String message;
+    private BufferedImage imgPre;
+    private File imgPost;
+
+    public ImageCrypter(String message, String imgName) throws IOException {
+        this(message, imgName, imgName);
+    }
+
+    public ImageCrypter(String message, String srcImgName, String dstImgName) throws IOException {
+        this.message = message;
+        File srcImg = new File(srcImgName);
+
+        // create blank image if it doesn't exist.
+        if (!srcImg.exists()) {
+            Logger.info("Creating blank image...");
+            int size = (int) (Math.sqrt(message.length()) + 1);
+            this.imgPre = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+
+        // otherwise just use source image.
+        } else
+            Logger.info("Source image initialized.");
+            this.imgPre= ImageIO.read(new FileInputStream(srcImg));
+
+        if(srcImgName.equals(dstImgName)) this.imgPost = new File(srcImgName);
     }
 
     /**
      * Puts a message into an image.
-     * @param message Message to encrypt.
-     * @param inputImgName Name of image file to encrypt into.
-     * @param outputImgName Name of image file to output as (same file as input will overwrite it).
      * @throws IOException When an error occurs in file management.
      * @throws IllegalArgumentException When the message passed in can't fit in the image.
      */
-    public static void encrypt(String message, String inputImgName, String outputImgName)
-            throws IOException, IllegalArgumentException {
-        File inImg = new File(inputImgName);
-        BufferedImage img;
-        if (!inImg.exists()) {
-            int size = (int) (Math.sqrt(message.length()) + 1);
-            img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-        } else
-            img = ImageIO.read(inImg);
+    public void encrypt() throws IOException, IllegalArgumentException {
+        if(this.isOverflowing())
+            throw new IllegalArgumentException("Length of message is too big for image.");
 
-
-        // encrypts the message to bytes
-
-        int imgSize = img.getWidth() * img.getHeight();
-
-        // check if size of text is too big.
-        if (message.length() > imgSize)
-            throw new IllegalArgumentException("Length of message is too long for image provided.");
-
-        // begin encryption
+        // Stores color differentials to be added to each pixel on the image.
         Color[] newPixels = new Color[message.length() + 1]; // stores the last few bits (r 3, g 3, b 2) of the pixel
         int index = 0;
         byte[] bytes = message.getBytes();
@@ -58,40 +55,43 @@ public class ImageCrypter {
                     bSub = (byte) (b & 3); // bits 1:0 of 'b' being picked out (000000xx)
             newPixels[index++] = new Color(rSub, gSub, bSub);
         }
-        newPixels[index] = new Color(0, 0, 3); // indicates end of the sentence
+        newPixels[index] = new Color(0, 0, 3); // ETX char indicates end of the sentence
 
+        // Adds each differential in 'newPixels' to the pixels in the image.
         index = 0;
-        for (int h = 0; h < img.getHeight(); h++) {
-            for (int w = 0; w < img.getWidth(); w++) {
-                if (index >= newPixels.length) break;
-                Color current = new Color(img.getRGB(w, h));
+        for (int h = 0; h < this.imgPre.getHeight(); h++) {
+            for (int w = 0; w < this.imgPre.getWidth(); w++) {
+                if (index >= newPixels.length) break; // done encrypting
+                Color current = new Color(this.imgPre.getRGB(w, h));
                 newPixels[index] = new Color( // establishes the new color
                         (current.getRed() & 248) | newPixels[index].getRed(),
                         (current.getGreen() & 248) | newPixels[index].getGreen(),
                         (current.getBlue() & 252) | newPixels[index].getBlue()
                 );
-                img.setRGB(w, h, newPixels[index++].getRGB());
+                this.imgPre.setRGB(w, h, newPixels[index++].getRGB());
             }
-            if(index >= newPixels.length) break;
+            if(index >= newPixels.length) break; // done encrypting
         }
 
-        String ending = outputImgName.substring(outputImgName.length() - 3);
-        File outImg = new File(outputImgName);
-        ImageIO.write(img, ending, outImg); // writes image to output image.
+        // writes image to the destination image.
+        ImageIO.write(this.imgPre, "png", this.imgPost);
     }
 
     /**
-     * Reads a message from an image.
-     * @param imgName Name of image file to read from.
+     * Reads a message from the resulting image.
      * @return The message in the image.
      * @throws IOException When an error occurs in file management.
      */
-    public static String decrypt(String imgName) throws IOException {
-        File imgFile = new File(imgName);
-        BufferedImage img = ImageIO.read(new FileInputStream(imgFile));
+    public String decrypt() throws IOException {
+        if(!this.imgPost.exists()) {
+            Logger.err("Encrypted image did not exist when accessed!");
+            return null;
+        }
+
+        BufferedImage img = ImageIO.read(new FileInputStream(this.imgPost));
         StringBuilder msg = new StringBuilder();
 
-        // store colors in array
+        // Reads each pixel and appends char to 'msg'
         for (int h = 0; h < img.getHeight(); h++) {
             for (int w = 0; w < img.getWidth(); w++) {
                 Color current = new Color(img.getRGB(w, h));
@@ -104,6 +104,14 @@ public class ImageCrypter {
             }
         }
         return msg.toString();
+    }
+
+    /**
+     * @return True if the message is too big for the picture, false if it will fit.
+     */
+    public boolean isOverflowing() {
+        int imgSize = this.imgPre.getWidth() * this.imgPre.getHeight();
+        return this.message.length() > imgSize;
     }
 
 }
