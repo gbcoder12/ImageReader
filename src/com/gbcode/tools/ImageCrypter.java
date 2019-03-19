@@ -20,20 +20,35 @@ public class ImageCrypter {
 
     public ImageCrypter(String message, String srcImgName, String dstImgName) throws IOException {
         this.message = message;
-        File srcImg = new File(srcImgName);
+        this.setImageSrc(srcImgName);
+        this.setImageDst(dstImgName);
+    }
 
+    /**
+     * Redefines the source image.
+     * @param imgName Name of the source image.
+     */
+    public void setImageSrc(String imgName) throws IOException {
+        File imgFile = new File(imgName);
         // create blank image if it doesn't exist.
-        if (!srcImg.exists()) {
+        if (!imgFile.exists()) {
             Logger.info("Creating blank image...");
             int size = (int) (Math.sqrt(message.length()) + 1);
             this.imgPre = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
 
         // otherwise just use source image.
-        } else
+        } else {
             Logger.info("Source image initialized.");
-            this.imgPre= ImageIO.read(new FileInputStream(srcImg));
+            this.imgPre = ImageIO.read(new FileInputStream(imgFile));
+        }
+    }
 
-        if(srcImgName.equals(dstImgName)) this.imgPost = new File(srcImgName);
+    /**
+     * Redefines the location of the file to write to.
+     * @param imgName Location to write to.
+     */
+    public void setImageDst(String imgName) throws FileNotFoundException {
+        this.imgPost = new File(imgName);
     }
 
     /**
